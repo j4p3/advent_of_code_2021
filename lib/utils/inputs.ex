@@ -10,4 +10,14 @@ defmodule AdventOfCode2021.Utils.Inputs do
     file_to_stream(filepath)
     |> Stream.map(&String.to_integer/1)
   end
+
+  @doc """
+  Convert a string of integer characters ("1", "45") to a list of individual integers
+  """
+  @spec to_integer_list(String.t()) :: [integer()]
+  def to_integer_list(input_string) do
+    input_string
+    |> String.codepoints()
+    |> Enum.map(fn i -> String.to_integer(i) end)
+  end
 end
