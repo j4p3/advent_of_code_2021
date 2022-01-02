@@ -5,34 +5,12 @@ defmodule AdventOfCode2021.Nine do
   """
 
   alias AdventOfCode2021.Utils.Inputs
-
-  defmodule Grid do
-    defstruct points: %{}, width: nil, height: nil
-
-    @spec new([[integer()]]) :: map
-    def new(lines) do
-      points =
-        for {line, y} <- Enum.with_index(lines),
-            {point, x} <- Enum.with_index(line),
-            into: %{},
-            do: {{x, y}, point}
-
-      %Grid{points: points, width: length(List.first(lines)), height: length(lines)}
-    end
-
-    def neighbors(grid, {x, y}) do
-      [{x + 1, y}, {x - 1, y}, {x, y + 1}, {x, y - 1}]
-      |> Enum.filter(&in_bounds?(grid, &1))
-      |> Enum.map(fn coords -> {coords, Map.get(grid.points, coords)} end)
-    end
-
-    defp in_bounds?(grid, {x, y}), do: x < grid.width && x >= 0 && y < grid.height && y >= 0
-  end
+  alias AdventOfCode2021.Utils.Grid
 
   def one(input) do
     input
     |> parse_input()
-    |> Grid.new()
+    |> AdventOfCode2021.Utils.Grid.new()
     |> low_points()
     |> Enum.map(fn {_coords, value} -> value end)
     |> Enum.sum()

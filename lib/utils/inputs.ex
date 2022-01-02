@@ -20,4 +20,10 @@ defmodule AdventOfCode2021.Utils.Inputs do
     |> String.codepoints()
     |> Enum.map(fn i -> String.to_integer(i) end)
   end
+
+  def file_by_line(input_filepath) do
+      (File.cwd!() <> input_filepath)
+      |> File.read!()
+      |> String.split("\n")
+  end
 end

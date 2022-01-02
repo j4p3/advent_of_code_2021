@@ -92,8 +92,8 @@ defmodule AdventOfCode2021.Eight do
       |> (&set_int(&1, 0, List.first(&1.signals[6]))).()
     end
 
-    defp set_pattern(display, 0), do: set_pattern(display, 9)
-    defp set_pattern(display, 5), do: set_pattern(display, 2)
+    # defp set_pattern(display, 0), do: set_pattern(display, 9)
+    # defp set_pattern(display, 5), do: set_pattern(display, 2)
 
     defp set_pattern(display, 2) do
       two_pattern =
