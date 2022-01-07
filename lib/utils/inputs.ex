@@ -24,6 +24,6 @@ defmodule AdventOfCode2021.Utils.Inputs do
   def file_by_line(input_filepath) do
       (File.cwd!() <> input_filepath)
       |> File.read!()
-      |> String.split("\n")
+      |> String.split("\n", trim: true)
   end
 end
