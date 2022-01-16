@@ -22,7 +22,7 @@ defmodule AdventOfCode2021.Fourteen do
   * Cheaply - keep a count of each pair, adjust pairs with each step, forget ordering
 
   Key insight here being, for an output which requires impractical resources to operate on,
-  operate instead on some relevant metadata about it.
+  operate instead on some relevant metadata about or abstraction of it.
   """
   def two(input_file) do
     {template, rules} = parse_input(input_file)

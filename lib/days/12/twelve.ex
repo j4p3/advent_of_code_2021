@@ -87,8 +87,6 @@ defmodule AdventOfCode2021.Twelve do
     IO.write("visiting #{node_value} - ")
     node = nodes[node_value]
 
-    # @todo finish setting to_visit instead of single next value, finish end case, create base case for [] to_visit
-
     new_paths =
       cond do
         node.type == :start || (node_value in visited && node.type == :small && visited_twice?) ->

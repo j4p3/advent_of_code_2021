@@ -38,6 +38,13 @@ defmodule AdventOfCode2021.Utils.Grid do
   end
 
   @doc """
+  Retrieve a value by coordinate
+  """
+  def get(grid, point) do
+    Map.get(grid.points, point)
+  end
+
+  @doc """
   Horizontal and vertical neighbors only
   Pass all: true to include diagonals
   """

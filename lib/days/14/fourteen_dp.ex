@@ -1,4 +1,4 @@
-defmodule AdventOfCode.FourteenDp do
+defmodule AdventOfCode2021.FourteenDp do
   @moduledoc """
   Attempted solution accumulating full transformation per # steps for each pair
   Too memory-inefficient to work for any significant depth
