@@ -12,7 +12,7 @@ defmodule AdventOfCode2021.Twelve do
   Base case when list is empty
   """
 
-  alias AdventOfCode2021.Utils.Node
+  alias AdventOfCode2021.Utils.GraphNode
 
   def one(input_file) do
     input_file
@@ -133,10 +133,10 @@ defmodule AdventOfCode2021.Twelve do
     end)
     |> Enum.reduce(%{}, fn {a, b}, nodes ->
       nodes
-      |> Map.put_new(a, Node.new(a))
-      |> Map.put_new(b, Node.new(b))
-      |> (&Map.put(&1, a, Node.add_child(&1[a], &1[b]))).()
-      |> (&Map.put(&1, b, Node.add_child(&1[b], &1[a]))).()
+      |> Map.put_new(a, GraphNode.new(a))
+      |> Map.put_new(b, GraphNode.new(b))
+      |> (&Map.put(&1, a, GraphNode.add_child(&1[a], &1[b]))).()
+      |> (&Map.put(&1, b, GraphNode.add_child(&1[b], &1[a]))).()
     end)
   end
 end

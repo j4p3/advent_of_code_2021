@@ -37,10 +37,6 @@ defmodule AdventOfCode2021.Seventeen do
 
   # general case
   def accumulate_velocities({{vx0, max_x}, {min_y, max_y}}, target_limits, velocities) do
-    IO.puts(
-      "def accumulate_velocities({{#{vx0}, #{max_x}}, {#{min_y}, #{max_y}}} with #{length(velocities)} so far)"
-    )
-
     new_velocities =
       Enum.reduce_while(min_y..max_y, [], fn vy0, acc ->
         # @todo optimize for starting with correct y range for x
