@@ -1,46 +1,61 @@
+require IEx
+
 defmodule AdventOfCode2021.Eighteen do
   @moduledoc """
   Day 18: Snailfish
   https://adventofcode.com/2021/day/18
 
-  @todo: figure out why sample2 breaks on step 5
+  @todo: figure out why sample2 breaks on step 4
   after 112 reductions yielding a [7,8] where it should have a [6,8] and a [8,9] where it should have a [9,9]
   """
 
-  def one(input_file) do
+  require AdventOfCode2021.Drawing
+
+  def one(input_file, debug_step \\ nil) do
     input_file
     |> parse_input()
-    |> sum_lists()
+    |> then(&sum_lists(&1, debug_step))
   end
 
   def two(input) do
     input
   end
 
-  def sum_lists(lists) do
-    Enum.reduce(lists, fn list, acc ->
-      IO.puts("\nadding lists:")
+  def sum_lists(lists, debug_step) do
+    Enum.reduce(tl(lists), {1, hd(lists)}, fn list, {i, acc} ->
+      IO.puts("\n#{i}: adding\n----------")
       IO.inspect(acc, charlists: :as_lists)
       IO.inspect(list, charlists: :as_lists)
-      reduce([acc, list])
+      {i + 1, reduce([acc, list], i == debug_step)}
     end)
   end
 
-  def reduce(list) do
+  def reduce(list, inspect \\ false) do
+    if inspect do
+      # IO.puts(AdventOfCode2021.Drawing.draw(list))
+      # case IO.gets("continue? (y/n)") do
+      #   "y\n" -> nil
+      #   "n\n" -> exit(:normal)
+      # end
+      IO.inspect(list, charlists: :as_lists)
+    end
+
     case explode(list) do
       {exp_list, true} ->
-        IO.puts("exploded, list is now: ")
-        IO.inspect(exp_list, charlists: :as_lists)
-        IO.puts("")
-        reduce(exp_list)
+        if inspect do
+          IO.puts("explode")
+        end
+
+        reduce(exp_list, inspect)
 
       {exp_list, false} ->
         case split(exp_list) do
           {split_list, true} ->
-            IO.puts("split, list is now: ")
-            IO.inspect(split_list, charlists: :as_lists)
-            IO.puts("")
-            reduce(split_list)
+            if inspect do
+              IO.puts("split")
+            end
+
+            reduce(split_list, inspect)
 
           {split_list, false} ->
             split_list
@@ -69,7 +84,7 @@ defmodule AdventOfCode2021.Eighteen do
 
   # base case (right-hand int)
   def split([l_list, right]) when is_list(l_list) and right >= 10 do
-    IO.puts("splitting [#{right}]")
+    # IO.puts("splitting [#{right}]")
     {[l_list, [floor(right / 2), ceil(right / 2)]], true}
   end
 
@@ -81,7 +96,7 @@ defmodule AdventOfCode2021.Eighteen do
 
   # base case (left-hand int)
   def split([left, r_list]) when is_list(r_list) and left >= 10 do
-    IO.puts("splitting [#{left}]")
+    # IO.puts("splitting [#{left}]")
     {[[floor(left / 2), ceil(left / 2)], r_list], true}
   end
 
@@ -95,11 +110,11 @@ defmodule AdventOfCode2021.Eighteen do
   def split([left, right]) do
     cond do
       left >= 10 ->
-        IO.puts("splitting [#{left}]")
+        # IO.puts("splitting [#{left}]")
         {[[floor(left / 2), ceil(left / 2)], right], true}
 
       right >= 10 ->
-        IO.puts("splitting [#{right}]")
+        # IO.puts("splitting [#{right}]")
         {[left, [floor(right / 2), ceil(right / 2)]], true}
 
       true ->
@@ -163,11 +178,11 @@ defmodule AdventOfCode2021.Eighteen do
   def explode([l_list, right], depth) when is_list(l_list) do
     case explode(l_list, depth + 1) do
       {{l_value, 0, r_value}, exp?} ->
-        IO.puts("incrementing #{right} by #{r_value}")
+        # IO.puts("incrementing #{right} by #{r_value}")
         {{l_value, [0, right + r_value]}, exp?}
 
       {{new_l_list, r_value}, exp?} when is_list(new_l_list) ->
-        IO.puts("incrementing #{right} by #{r_value}")
+        # IO.puts("incrementing #{right} by #{r_value}")
         {[new_l_list, right + r_value], exp?}
 
       {{l_value, new_l_list}, exp?} when is_list(new_l_list) ->
@@ -182,11 +197,11 @@ defmodule AdventOfCode2021.Eighteen do
   def explode([left, r_list], depth) when is_list(r_list) do
     case explode(r_list, depth + 1) do
       {{l_value, 0, r_value}, exp?} ->
-        IO.puts("incrementing #{left} by #{l_value}")
+        # IO.puts("incrementing #{left} by #{l_value}")
         {{[l_value + left, 0], r_value}, exp?}
 
       {{l_value, new_r_list}, exp?} when is_list(new_r_list) ->
-        IO.puts("incrementing #{left} by #{l_value}")
+        # IO.puts("incrementing #{left} by #{l_value}")
         {[left + l_value, new_r_list], exp?}
 
       {{new_r_list, r_value}, exp?} when is_list(new_r_list) ->
@@ -199,7 +214,7 @@ defmodule AdventOfCode2021.Eighteen do
 
   # base case: integer pair, explosion
   def explode([left, right], depth) when depth > 4 do
-    IO.puts("exploding [#{left}, #{right}]")
+    # IO.puts("exploding [#{left}, #{right}]")
     {{left, 0, right}, true}
   end
 
@@ -213,7 +228,7 @@ defmodule AdventOfCode2021.Eighteen do
   end
 
   def push(:right, [left, r_list], value) when is_list(r_list) do
-    IO.puts("incrementing #{left} by #{value}")
+    # IO.puts("incrementing #{left} by #{value}")
     [left + value, r_list]
   end
 
@@ -222,7 +237,7 @@ defmodule AdventOfCode2021.Eighteen do
   end
 
   def push(:right, [left, right], value) do
-    IO.puts("incrementing #{left} by #{value}")
+    # IO.puts("incrementing #{left} by #{value}")
     [left + value, right]
   end
 
@@ -235,12 +250,12 @@ defmodule AdventOfCode2021.Eighteen do
   end
 
   def push(:left, [l_list, right], value) when is_list(l_list) do
-    IO.puts("incrementing #{right} by #{value}")
+    # IO.puts("incrementing #{right} by #{value}")
     [l_list, right + value]
   end
 
   def push(:left, [left, right], value) do
-    IO.puts("incrementing #{right} by #{value}")
+    # IO.puts("incrementing #{right} by #{value}")
     [left, right + value]
   end
 
