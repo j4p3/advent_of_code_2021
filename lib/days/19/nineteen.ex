@@ -18,15 +18,23 @@ defmodule AdventOfCode2021.Nineteen do
   def one(input_file) do
     input_file
     |> parse_input()
-    |> Enum.map(&beacon_relative_positions/1)
+    |> Enum.map(&scanner_rotations/1)
+
+    # |> Enum.map(&beacon_relative_positions/1)
   end
 
   def two(input_file) do
     parse_input(input_file)
   end
 
+  def scanner_rotations(scan) do
+    Enum.map(scan, fn coord ->
+      {coord, rotations(coord)}
+    end)
+  end
+
   def match_count(scan_a, scan_b) do
-    for {_coords_b, pos_a} <- scan_a,
+    for {_coords_a, pos_a} <- scan_a,
         {_coords_b, pos_b} <- scan_b,
         reduce: 0 do
       acc ->
@@ -57,13 +65,46 @@ defmodule AdventOfCode2021.Nineteen do
   """
   def relative_distance_sums(scan) do
     for {xa, ya, za} <- scan,
-        {xb, yb, zb} <- scan
-      do
-        (abs(xb - xa) + abs(yb - ya) + abs(zb - za))
+        {xb, yb, zb} <- scan do
+      abs(xb - xa) + abs(yb - ya) + abs(zb - za)
     end
   end
 
-  def rotations({x, y, z}) do
+  def generate_rotations({x, y, z} = coords) do
+    :ok
+    # [
+
+    # ]
+
+    # for _i <- 0..1,
+    #     _j <- 0..3,
+    #     _k <- 0..2
+    #     reduce: {[coords], coords} do
+    #       acc ->
+    #         []
+    #     end
+
+    # rot_x()
+  end
+
+  def flip(coords, times), do: flip(coords, times, [coords])
+
+  defp flip(_coords, 0, acc), do: acc
+
+  defp flip(coords, times, acc = []) do
+    flipped = flip(coords)
+    flip(flipped, times - 1, [flipped | acc])
+  end
+
+  defp flip({x, y, z}), do: {y, x, -z}
+
+  def rot_x(coords)
+
+  def rot_x({x, y, z}), do: {x, z, -y}
+
+  def rot_z({x, y, z}), do: {y, -x, z}
+
+  def f_rotations({x, y, z}) do
     [
       {x, y, z},
 
@@ -86,7 +127,7 @@ defmodule AdventOfCode2021.Nineteen do
     ]
   end
 
-  def generate_rotations({x, y, z}) do
+  def f_generate_rotations({x, y, z}) do
     [
       {x, y, z},
 
