@@ -4,21 +4,60 @@ defmodule AdventOfCode2021.Nineteen do
   https://adventofcode.com/2021/day/19
   """
 
+  @typedoc """
+  3d coordinate
+  """
   @type coordinate :: {integer(), integer(), integer()}
 
+  @typedoc """
+  All orientations of a scan
+  """
+  @type scan :: [[coordinate()]]
+
+  @typedoc """
+  Distances between a coordinate and all other coordinates in a scan
+  """
+  @type relative_coordinate :: {coordinate(), MapSet[coordinate()]}
+
+  @typedoc """
+  All relative coordinates in a scan
+  """
+  @type relative_scan :: [[relative_coordinate()]]
+
   @doc """
-  Ideas:
-  * set up global frame of reference based on first scanner
-  * compare point sets by relative distances
-  * check all possible orientations against each other
-  * build comprehensive list of known points
-  * group point sets? e.g. 1 & 2 match, 3 & 4 match, 5 matches both, use to reconcile all?
-  * can we rely on a single matching rotation? some points may match in multiple configurations
+  Worth noting that this problem got a lot simpler by defining types.
+  A lot of this complexity is just fanning out more data from the initial input.
+  Specifying what the input and outputs look like make it a lot easier to think about.
   """
   def one(input_file) do
-    input_file
-    |> parse_input()
-    |> Enum.map(&scanner_rotations/1)
+    scans =
+      input_file
+      |> parse_input()
+
+    scans = Enum.map(scans, &scan_orientations/1)
+    relative_scans = Enum.map(scans, &relative_scan_positions/1)
+
+    Enum.reduce(relative_scans, fn scan, known_scan ->
+      # @todo: build_beacon_list had the right idea here
+      # check for a match, if so, merge the nonmatchers in
+      # if not, put it at the end of the list and keep going
+    end)
+
+    # build complete list of beacons
+    # all_beacons = Enum.reduce(tail_scans, origin_beacons, fn scan_orientations, known_beacons ->
+    #   case find_matching_orientation(known_beacons, scan_orientations) do
+    #     nil -> :ok
+    #   end
+
+    # Enum.reduce_while(scan_orientations, origin_scan, fn coordinates, _ ->
+    #   if match_count(origin_scan, coordinates) >= 12 do
+    #     {:halt, Enum.uniq(origin_scan ++ coordinates)}
+    #   else
+    #     {:cont, origin_scan}
+    #   end
+    # end)
+
+    # end)
 
     # |> Enum.map(&beacon_relative_positions/1)
   end
@@ -27,126 +66,123 @@ defmodule AdventOfCode2021.Nineteen do
     parse_input(input_file)
   end
 
-  def scanner_rotations(scan) do
-    Enum.map(scan, fn coord ->
-      {coord, rotations(coord)}
-    end)
-  end
-
+  @spec match_count([relative_scan()], [relative_scan()]) :: integer()
   def match_count(scan_a, scan_b) do
-    for {_coords_a, pos_a} <- scan_a,
-        {_coords_b, pos_b} <- scan_b,
+    for a <- scan_a,
+        b <- scan_b,
         reduce: 0 do
       acc ->
-        if pos_a == pos_b, do: acc + 1, else: acc
+        if a == b, do: acc + 1, else: acc
     end
   end
 
   @doc """
-  Generate a set of distances from other beacons for each beacon in a scan.
+  Build beacon list from all scans.
+  If there's not enough matches, put that scan at the end of the list and continue.
   """
-  @spec beacon_relative_positions([coordinate]) :: [{coordinate, MapSet.t(coordinate)}]
-  def beacon_relative_positions(scan) do
-    Enum.map(scan, fn {xa, ya, za} = a ->
-      pos =
-        for {xb, yb, zb} = b <- scan,
+
+  # def build_beacon_list(known_beacons, []), do: known_beacons
+
+  # def build_beacon_list(known_beacons, [scan | scans]) do
+  #   case check_beacon_orientations(known_beacons, scan) do
+  #     nil ->
+  #       build_beacon_list(known_beacons, Enum.reverse([scan | Enum.reverse(scans)]))
+  #     scan_orientation ->
+  #       new_beacons = translate_beacons(known_beacons, scan_orientation)
+  #       build_beacon_list(new_beacons, scans)
+  #   end
+  # end
+
+  def check_beacon_orientations(_known_beacons, []), do: nil
+
+  def check_beacon_orientations(known_beacons, [scan_orientation | scan_orientations]) do
+    if match_count(known_beacons, scan_orientation) >= 12 do
+      scan_orientation
+    else
+      check_beacon_orientations(known_beacons, scan_orientations)
+    end
+  end
+
+  # @spec find_matching_orientation([coordinate()], [[coordinate()]]) :: [coordinate()]
+  # def find_matching_orientation(known_beacons, []), do: nil
+  # def find_matching_orientation(known_beacons, [orientation | scan_orientations]) do
+
+  # end
+
+  @spec relative_scan_positions(scan()) :: relative_scan()
+  def relative_scan_positions(scans) do
+    for scan <- scans, do: relative_scan_orientation_positions(scan)
+  end
+
+  @spec relative_scan_orientation_positions([coordinate()]) :: [relative_coordinate()]
+  def relative_scan_orientation_positions(scan) do
+    Enum.map(scan, fn i ->
+      relative_positions =
+        for j <- scan,
             reduce: MapSet.new() do
           acc ->
-            # could accumulate an aggregate distance here in addition to or instead of mapset
-            if a == b, do: acc, else: MapSet.put(acc, {xb - xa, yb - ya, zb - za})
+            # could accumulate an aggregate distance here in addition to or instead of mapset?
+            if i == j, do: acc, else: MapSet.put(acc, relative_position(i, j))
         end
 
-      {a, pos}
+      {i, relative_positions}
     end)
   end
 
-  @doc """
-  Sum of manhattan distance between point and neighbors
-  """
-  def relative_distance_sums(scan) do
-    for {xa, ya, za} <- scan,
-        {xb, yb, zb} <- scan do
-      abs(xb - xa) + abs(yb - ya) + abs(zb - za)
-    end
+  @spec relative_position(coordinate(), coordinate()) :: coordinate()
+  def relative_position({xa, ya, za}, {xb, yb, zb}) do
+    {xb - xa, yb - ya, zb - za}
   end
 
-  def generate_rotations({x, y, z} = coords) do
-    :ok
-    # [
-
-    # ]
-
-    # for _i <- 0..1,
-    #     _j <- 0..3,
-    #     _k <- 0..2
-    #     reduce: {[coords], coords} do
-    #       acc ->
-    #         []
-    #     end
-
-    # rot_x()
+  @spec scan_orientations([coordinate()]) :: scan()
+  def scan_orientations(scan) do
+    scan
+    |> Enum.map(&coordinate_orientations_set/1)
+    |> Enum.zip()
+    |> Enum.map(&Tuple.to_list/1)
+    |> Enum.reverse()
   end
 
-  def flip(coords, times), do: flip(coords, times, [coords])
+  @spec coordinate_orientations_set(coordinate()) :: [coordinate()]
+  def coordinate_orientations_set(coord) do
+    coord
+    |> flip(2)
+    |> Enum.map(fn j ->
+      rotate(:x, j, 4)
+      |> Enum.map(fn k ->
+        rotate(:z, k, 4)
+      end)
+    end)
+    |> List.flatten()
+    # todo combine rotations properly
+    |> Enum.uniq()
+  end
+
+  def flip(coords, times), do: flip(coords, times - 1, [coords])
 
   defp flip(_coords, 0, acc), do: acc
 
-  defp flip(coords, times, acc = []) do
+  defp flip(coords, times, acc) do
     flipped = flip(coords)
     flip(flipped, times - 1, [flipped | acc])
   end
 
   defp flip({x, y, z}), do: {y, x, -z}
 
-  def rot_x(coords)
-
-  def rot_x({x, y, z}), do: {x, z, -y}
-
-  def rot_z({x, y, z}), do: {y, -x, z}
-
-  def f_rotations({x, y, z}) do
-    [
-      {x, y, z},
-
-      # +/- 180
-      {x, -y, -z},
-      {-x, y, -z},
-      {-x, -y, z},
-
-      # +/-90x
-      {x, -z, y},
-      {x, z, -y},
-
-      # +/-90y
-      {-z, y, x},
-      {z, y, -x},
-
-      # +/-90z
-      {y, -x, z},
-      {-y, x, z}
-    ]
+  def rotate(dim, coords, times) do
+    rotate(dim, coords, times - 1, [coords])
   end
 
-  def f_generate_rotations({x, y, z}) do
-    [
-      {x, y, z},
+  defp rotate(_dim, _coords, 0, acc), do: acc
 
-      # z rotations (3)
-      {y, -x, z},
-      {-x, -y, z},
-      {-y, x, z},
-      # -z rotations (3)
-      {x, -y, -z},
-      {y, x, -z},
-      {-x, y, -z}
-
-      # y rotations (3)
-      # -y rotations (3)
-
-      # x rotations (3)
-      # -x rotations (3)
-    ]
+  defp rotate(dim, coords, times, acc) do
+    rotated = rotate(dim, coords)
+    rotate(dim, rotated, times - 1, [rotated | acc])
   end
+
+  defp rotate(:x, {x, y, z}), do: {x, z, -y}
+
+  defp rotate(:z, {x, y, z}), do: {y, -x, z}
 
   def parse_input(input_file) do
     "#{File.cwd!()}/lib/days/19/#{input_file}.txt"
