@@ -24,90 +24,123 @@ defmodule AdventOfCode2021.Nineteen do
   """
   @type relative_scan :: [[relative_coordinate()]]
 
+  @typedoc """
+  Quick-lookup format of relative positions and the absolute coordinates of the related beacon
+  """
+  @type relative_beacon_map :: %{MapSet[coordinate()] => coordinate()}
+
   @doc """
-  Worth noting that this problem got a lot simpler by defining types.
-  A lot of this complexity is just fanning out more data from the initial input.
-  Specifying what the input and outputs look like make it a lot easier to think about.
+  Note: Nearly there. Not finding matches for all scans, even in sample2.
+  Likely orientations still not correct - 2 of 4 scans not matching origin
+  even though they're the same points. Flipping going wrong?
   """
   def one(input_file) do
     scans =
       input_file
       |> parse_input()
 
-    scans = Enum.map(scans, &scan_orientations/1)
-    relative_scans = Enum.map(scans, &relative_scan_positions/1)
+    scan_orientations = Enum.map(scans, &scan_orientations/1)
+    relative_scans = Enum.map(tl(scan_orientations), &relative_scan_positions/1)
 
-    Enum.reduce(relative_scans, fn scan, known_scan ->
-      # @todo: build_beacon_list had the right idea here
-      # check for a match, if so, merge the nonmatchers in
-      # if not, put it at the end of the list and keep going
-    end)
+    known_beacons =
+      hd(scans)
+      |> relative_scan_orientation_positions()
+      |> relative_scan_orientation_to_beacon_map()
 
-    # build complete list of beacons
-    # all_beacons = Enum.reduce(tail_scans, origin_beacons, fn scan_orientations, known_beacons ->
-    #   case find_matching_orientation(known_beacons, scan_orientations) do
-    #     nil -> :ok
-    #   end
+    beacons = build_beacon_map(known_beacons, relative_scans)
 
-    # Enum.reduce_while(scan_orientations, origin_scan, fn coordinates, _ ->
-    #   if match_count(origin_scan, coordinates) >= 12 do
-    #     {:halt, Enum.uniq(origin_scan ++ coordinates)}
-    #   else
-    #     {:cont, origin_scan}
-    #   end
-    # end)
-
-    # end)
-
-    # |> Enum.map(&beacon_relative_positions/1)
+    map_size(beacons)
   end
 
   def two(input_file) do
     parse_input(input_file)
   end
 
-  @spec match_count([relative_scan()], [relative_scan()]) :: integer()
-  def match_count(scan_a, scan_b) do
-    for a <- scan_a,
-        b <- scan_b,
-        reduce: 0 do
-      acc ->
-        if a == b, do: acc + 1, else: acc
-    end
-  end
+  ################################################################################################
+  # Matching & consolidating scans
+  #
 
   @doc """
   Build beacon list from all scans.
   If there's not enough matches, put that scan at the end of the list and continue.
   """
+  @spec build_beacon_map(relative_beacon_map(), [relative_scan()]) :: relative_beacon_map()
+  def build_beacon_map(known_beacons, []), do: known_beacons
 
-  # def build_beacon_list(known_beacons, []), do: known_beacons
+  def build_beacon_map(known_beacons, [scan | scans]) do
+    IO.puts("checking scan")
+    IO.inspect(scan)
+    case get_matching_orientation(known_beacons, scan) do
+      nil ->
+        build_beacon_map(known_beacons, Enum.reverse([scan | Enum.reverse(scans)]))
 
-  # def build_beacon_list(known_beacons, [scan | scans]) do
-  #   case check_beacon_orientations(known_beacons, scan) do
-  #     nil ->
-  #       build_beacon_list(known_beacons, Enum.reverse([scan | Enum.reverse(scans)]))
-  #     scan_orientation ->
-  #       new_beacons = translate_beacons(known_beacons, scan_orientation)
-  #       build_beacon_list(new_beacons, scans)
-  #   end
-  # end
+      scan_orientation ->
+        # @todo: breaks here
+        known_beacons = consolidate_beacons(known_beacons, scan_orientation)
+        build_beacon_map(known_beacons, scans)
+    end
 
-  def check_beacon_orientations(_known_beacons, []), do: nil
+  end
 
-  def check_beacon_orientations(known_beacons, [scan_orientation | scan_orientations]) do
-    if match_count(known_beacons, scan_orientation) >= 12 do
+  @doc """
+  Find the orientation of a scan with sufficient matches in the known set.
+  If no orientations, return nil.
+  """
+  @spec get_matching_orientation(relative_beacon_map(), relative_scan()) ::
+          [relative_coordinate()] | nil
+  def get_matching_orientation(_known_beacons, []), do: nil
+
+  def get_matching_orientation(known_beacons, [scan_orientation | scan_orientations]) do
+    if match_count(known_beacons, scan_orientation) >= 6 do
       scan_orientation
     else
-      check_beacon_orientations(known_beacons, scan_orientations)
+      get_matching_orientation(known_beacons, scan_orientations)
     end
   end
 
-  # @spec find_matching_orientation([coordinate()], [[coordinate()]]) :: [coordinate()]
-  # def find_matching_orientation(known_beacons, []), do: nil
-  # def find_matching_orientation(known_beacons, [orientation | scan_orientations]) do
+  @doc """
+  Number points in a scan orientation whose relative position matches a known point.
+  """
+  @spec match_count(relative_beacon_map(), [relative_coordinate()]) :: integer()
+  def match_count(known_beacons, scan_orientation) do
+    for {_coord, relative_positions} <- scan_orientation,
+        reduce: 0 do
+      acc ->
+        if Map.has_key?(known_beacons, relative_positions), do: acc + 1, else: acc
+    end
+  end
 
-  # end
+  @spec consolidate_beacons(relative_beacon_map(), [relative_coordinate()]) ::
+          relative_beacon_map()
+  def consolidate_beacons(known_beacons, scan) do
+    {origin_beacon, new_beacon} = find_matching_beacon_pair(known_beacons, scan)
+    translation = relative_position(new_beacon, origin_beacon)
+
+    scan
+    |> Enum.each(fn {coordinate, relative_positions} ->
+      {translate_coordinate(coordinate, translation), relative_positions}
+      Map.put(known_beacons, relative_positions, translate_coordinate(coordinate, translation))
+    end)
+
+    known_beacons
+  end
+
+  @doc """
+  Find the pair of beacon coordinates whose relative distance from other beacons match
+  """
+  @spec find_matching_beacon_pair(relative_beacon_map(), [relative_coordinate()]) ::
+          {relative_coordinate(), relative_coordinate()}
+  def find_matching_beacon_pair(known_beacons, [{new_beacon_coord, relative_positions} | beacons]) do
+    if Map.has_key?(known_beacons, relative_positions) do
+      {Map.get(known_beacons, relative_positions), new_beacon_coord}
+    else
+      find_matching_beacon_pair(known_beacons, beacons)
+    end
+  end
+
+  ################################################################################################
+  # Building data structures for search
+  #
 
   @spec relative_scan_positions(scan()) :: relative_scan()
   def relative_scan_positions(scans) do
@@ -121,7 +154,7 @@ defmodule AdventOfCode2021.Nineteen do
         for j <- scan,
             reduce: MapSet.new() do
           acc ->
-            # could accumulate an aggregate distance here in addition to or instead of mapset?
+            # what other signatures could identify a point besides relative distances?
             if i == j, do: acc, else: MapSet.put(acc, relative_position(i, j))
         end
 
@@ -130,9 +163,10 @@ defmodule AdventOfCode2021.Nineteen do
   end
 
   @spec relative_position(coordinate(), coordinate()) :: coordinate()
-  def relative_position({xa, ya, za}, {xb, yb, zb}) do
-    {xb - xa, yb - ya, zb - za}
-  end
+  def relative_position({xa, ya, za}, {xb, yb, zb}), do: {xb - xa, yb - ya, zb - za}
+
+  @spec translate_coordinate(coordinate(), coordinate()) :: coordinate()
+  def translate_coordinate({x, y, z}, {tx, ty, tz}), do: {x + tx, y + ty, z + tz}
 
   @spec scan_orientations([coordinate()]) :: scan()
   def scan_orientations(scan) do
@@ -140,24 +174,29 @@ defmodule AdventOfCode2021.Nineteen do
     |> Enum.map(&coordinate_orientations_set/1)
     |> Enum.zip()
     |> Enum.map(&Tuple.to_list/1)
-    |> Enum.reverse()
   end
 
   @spec coordinate_orientations_set(coordinate()) :: [coordinate()]
   def coordinate_orientations_set(coord) do
     coord
-    |> flip(2)
-    |> Enum.map(fn j ->
-      rotate(:x, j, 4)
-      |> Enum.map(fn k ->
-        rotate(:z, k, 4)
-      end)
-    end)
-    |> List.flatten()
-    # todo combine rotations properly
-    |> Enum.uniq()
+    |> rotate(:x, 4)
+    |> Enum.flat_map(&rotate(&1, :z, 3))
+    |> Enum.flat_map(&flip(&1, 2))
+    |> Enum.reverse()
   end
 
+  @spec relative_scan_orientation_to_beacon_map([relative_coordinate()]) :: relative_beacon_map()
+  def relative_scan_orientation_to_beacon_map(relative_coordinates) do
+    Map.new(relative_coordinates, fn {coordinate, relative_positions} ->
+      {relative_positions, coordinate}
+    end)
+  end
+
+  ################################################################################################
+  # Rotation + transformation
+  #
+
+  @spec flip([coordinate()], integer()) :: [coordinate()]
   def flip(coords, times), do: flip(coords, times - 1, [coords])
 
   defp flip(_coords, 0, acc), do: acc
@@ -169,15 +208,16 @@ defmodule AdventOfCode2021.Nineteen do
 
   defp flip({x, y, z}), do: {y, x, -z}
 
-  def rotate(dim, coords, times) do
-    rotate(dim, coords, times - 1, [coords])
+  @spec rotate([coordinate()], :x | :z, integer()) :: [coordinate()]
+  def rotate(coords, dim, times) do
+    rotate(coords, dim, times - 1, [coords])
   end
 
-  defp rotate(_dim, _coords, 0, acc), do: acc
+  defp rotate(_coords, _dim, 0, acc), do: acc
 
-  defp rotate(dim, coords, times, acc) do
+  defp rotate(coords, dim, times, acc) do
     rotated = rotate(dim, coords)
-    rotate(dim, rotated, times - 1, [rotated | acc])
+    rotate(rotated, dim, times - 1, [rotated | acc])
   end
 
   defp rotate(:x, {x, y, z}), do: {x, z, -y}
