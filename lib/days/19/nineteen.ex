@@ -33,6 +33,14 @@ defmodule AdventOfCode2021.Nineteen do
   Note: Nearly there. Not finding matches for all scans, even in sample2.
   Likely orientations still not correct - 2 of 4 scans not matching origin
   even though they're the same points. Flipping going wrong?
+
+  Approach:
+  1. Generate all orientations of all scans
+  2. Set first orientation of first scan as frame of reference
+  3. Store this frame of refererence as k-v [relative_distances => absolute coordinate]
+  4. Generate matching k-v of absolute coordinates and their relative distances for each orientation of each other scan
+  5. Compare orientations of each scan to find matching orientation
+  6. Consolidate absolute coordinates on matching orientation
   """
   def one(input_file) do
     scans =
@@ -40,12 +48,13 @@ defmodule AdventOfCode2021.Nineteen do
       |> parse_input()
 
     scan_orientations = Enum.map(scans, &scan_orientations/1)
-    relative_scans = Enum.map(tl(scan_orientations), &relative_scan_positions/1)
 
     known_beacons =
       hd(scans)
       |> relative_scan_orientation_positions()
       |> relative_scan_orientation_to_beacon_map()
+
+    relative_scans = Enum.map(tl(scan_orientations), &relative_scan_positions/1)
 
     beacons = build_beacon_map(known_beacons, relative_scans)
 
@@ -79,7 +88,6 @@ defmodule AdventOfCode2021.Nineteen do
         known_beacons = consolidate_beacons(known_beacons, scan_orientation)
         build_beacon_map(known_beacons, scans)
     end
-
   end
 
   @doc """
