@@ -25,7 +25,7 @@ defmodule AdventOfCode2021.Utils.Math.Matrix do
 
   @spec new([integer()]) :: %AdventOfCode2021.Utils.Math.Matrix{columns: [[integer()]], rows: [[integer()]]}
   def new(lists) do
-    %__MODULE__{rows: lists, columns: Enum.zip(lists)}
+    %__MODULE__{rows: lists, columns: zip_to_lists(lists)}
   end
 
   # def pow(%__MODULE__{} = matrix, {:vector, vector}) do
@@ -49,11 +49,20 @@ defmodule AdventOfCode2021.Utils.Math.Matrix do
   #   end
   # end
 
+  @spec multiply(
+          %AdventOfCode2021.Utils.Math.Matrix{},
+          %AdventOfCode2021.Utils.Math.Matrix{}
+        ) :: list
   def multiply(%__MODULE__{rows: rows_a, columns: _columns_a}, %__MODULE__{rows: _rows_b, columns: columns_b}) do
-    for {row, column} <- Enum.zip(rows_a, columns_b) do
-      for {a, b} <- Enum.zip(row, column) do
+    for {row, column} <- zip_to_lists([rows_a, columns_b]) do
+      for {a, b} <- zip_to_lists([row, column]) do
         a * b
       end
     end
+  end
+
+  defp zip_to_lists(lists) do
+    Enum.zip(lists)
+    |> Enum.map(&Tuple.to_list/1)
   end
 end
