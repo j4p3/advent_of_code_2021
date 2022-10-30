@@ -21,12 +21,20 @@ defmodule AdventOfCode2021.Utils.Math.Vector do
 end
 
 defmodule AdventOfCode2021.Utils.Math.Matrix do
-  defstruct rows: [], columns: []
+  defstruct rows: %{}, columns: %{}, dimensions: 0
 
-  @spec new([integer()]) :: %AdventOfCode2021.Utils.Math.Matrix{columns: [[integer()]], rows: [[integer()]]}
-  def new(lists) do
-    %__MODULE__{rows: lists, columns: zip_to_lists(lists)}
+  @spec new([[integer()]]) :: %AdventOfCode2021.Utils.Math.Matrix{
+          columns: [[integer()]],
+          rows: [[integer()]]
+        }
+  def new(lists = [a | _b]) when is_list(a) do
+    %__MODULE__{rows: zip_to_list(lists), columns: lists, dimensions: length(lists)}
   end
+
+  # def new(list) do
+  #   columns = for i <- list, do: [i]
+  #   %__MODULE__{rows: list, columns: columns, dimensions: 1}
+  # end
 
   # def pow(%__MODULE__{} = matrix, {:vector, vector}) do
   #   vector
@@ -49,20 +57,52 @@ defmodule AdventOfCode2021.Utils.Math.Matrix do
   #   end
   # end
 
-  @spec multiply(
-          %AdventOfCode2021.Utils.Math.Matrix{},
-          %AdventOfCode2021.Utils.Math.Matrix{}
-        ) :: list
-  def multiply(%__MODULE__{rows: rows_a, columns: _columns_a}, %__MODULE__{rows: _rows_b, columns: columns_b}) do
-    for {row, column} <- zip_to_lists([rows_a, columns_b]) do
-      for {a, b} <- zip_to_lists([row, column]) do
-        a * b
+  def mult(a = %__MODULE__{}, b = %__MODULE__{}), do: multiply(a, b)
+
+  def mult_id(%__MODULE__{dimensions: dim}) do
+    for i <- 1..dim do
+      for j <- 1..dim do
+        if i == j, do: 1, else: 0
       end
     end
   end
 
-  defp zip_to_lists(lists) do
+  @spec multiply(
+          %__MODULE__{},
+          %__MODULE__{}
+        ) :: %__MODULE__{}
+  def multiply(%__MODULE__{rows: rows_a, columns: _columns_a}, %__MODULE__{
+        rows: _rows_b,
+        columns: columns_b
+      }) do
+    new_cols =
+      for row <- rows_a do
+        for col <- columns_b do
+          Enum.zip(row, col)
+          |> Enum.map(fn {r, c} -> r * c end)
+          |> Enum.sum()
+        end
+      end
+
+    new(new_cols)
+  end
+
+  defp zip_to_map(lists) do
+    zip_to_list(lists)
+    |> list_to_map()
+  end
+
+  defp zip_to_list(lists) do
     Enum.zip(lists)
     |> Enum.map(&Tuple.to_list/1)
   end
+
+  defp list_to_map(list) do
+    Enum.with_index(list)
+    |> Map.new()
+  end
+
+  defp depth([list]), do: 1 + depth(list)
+
+  defp depth(_list), do: 1
 end
