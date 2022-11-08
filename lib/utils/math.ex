@@ -11,7 +11,7 @@ end
 
 defmodule AdventOfCode2021.Utils.Math.Vector do
   defstruct coords: []
-  @spec new([integer()]) :: %AdventOfCode2021.Utils.Math.Vector{coords: [integer()]}
+  @spec new([integer()]) :: %__MODULE__{coords: [integer()]}
   def new(list) do
     %__MODULE__{coords: list}
   end
@@ -23,7 +23,12 @@ end
 defmodule AdventOfCode2021.Utils.Math.Matrix do
   defstruct rows: %{}, columns: %{}, dimensions: 0
 
-  @spec new([[integer()]]) :: %AdventOfCode2021.Utils.Math.Matrix{
+  # Right angle 3d rotation matrices
+  @rx [[1, 0, 0], [0, 0, -1], [0, 1, 0]]
+  @ry [[0, 0, -1], [0, 1, 0], [1, 0, 0]]
+  @rz [[0, 1, 0], [-1, 0, 0], [0, 0, 1]]
+
+  @spec new([[integer()]]) :: %__MODULE__{
           columns: [[integer()]],
           rows: [[integer()]]
         }
@@ -31,46 +36,19 @@ defmodule AdventOfCode2021.Utils.Math.Matrix do
     %__MODULE__{rows: zip_to_list(lists), columns: lists, dimensions: length(lists)}
   end
 
-  # def new(list) do
-  #   columns = for i <- list, do: [i]
-  #   %__MODULE__{rows: list, columns: columns, dimensions: 1}
-  # end
-
-  # def pow(%__MODULE__{} = matrix, {:vector, vector}) do
-  #   vector
-  # end
-
-  # def pow(%__MODULE__{} = matrix, {:matrix, matrix}) do
-  #   matrix
-  # end
-
-  # def multiply(a = %__MODULE__{}, b = %AdventOfCode2021.Utils.Math.Vector{}) do
-  #   # for i <- Tuple.to_list(vector), do: i
-
-  #   # end
-  #   for {i, j} <- Enum.zip(Tuple.to_list(vector), matrix) do
-  #     Enum.sum([i, j])
-  #   end
-  #   for i <- matrix,
-  #       {_j, k} <- Enum.zip(vector, i) do
-  #     i * k
-  #   end
-  # end
-
-  def mult(a = %__MODULE__{}, b = %__MODULE__{}), do: multiply(a, b)
-
-  def mult_id(%__MODULE__{dimensions: dim}) do
-    for i <- 1..dim do
-      for j <- 1..dim do
-        if i == j, do: 1, else: 0
-      end
-    end
-  end
-
   @spec multiply(
           %__MODULE__{},
-          %__MODULE__{}
-        ) :: %__MODULE__{}
+          %__MODULE__{} | %AdventOfCode2021.Utils.Math.Vector{}
+        ) :: %__MODULE__{} | %AdventOfCode2021.Utils.Math.Vector{}
+  def multiply(%__MODULE__{rows: m_rows}, %AdventOfCode2021.Utils.Math.Vector{coords: v_coords}) do
+    for row <- m_rows do
+      Enum.zip(row, v_coords)
+      |> Enum.map(fn {r, c} -> r * c end)
+      |> Enum.sum()
+    end
+    |> AdventOfCode2021.Utils.Math.Vector.new()
+  end
+
   def multiply(%__MODULE__{rows: rows_a, columns: _columns_a}, %__MODULE__{
         rows: _rows_b,
         columns: columns_b
@@ -85,6 +63,20 @@ defmodule AdventOfCode2021.Utils.Math.Matrix do
       end
 
     new(new_cols)
+  end
+
+  @spec rotate(:x | :y | :z, %AdventOfCode2021.Utils.Math.Vector{}) ::
+          %AdventOfCode2021.Utils.Math.Vector{}
+  def rotate(:x, vector = %AdventOfCode2021.Utils.Math.Vector{}) do
+    multiply(new(@rx), vector)
+  end
+
+  def rotate(:y, vector = %AdventOfCode2021.Utils.Math.Vector{}) do
+    multiply(new(@ry), vector)
+  end
+
+  def rotate(:z, vector = %AdventOfCode2021.Utils.Math.Vector{}) do
+    multiply(new(@rz), vector)
   end
 
   defp zip_to_map(lists) do
